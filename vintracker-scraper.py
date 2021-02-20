@@ -1,5 +1,4 @@
-# https://www.vinted.de/api/v2/users/44787336/items?page=1&per_page=20&order=relevance
-# # https://github.com/Gertje823/Vinted-Scraper/blob/main/scraper.py 
+# CREDIT: slightly changed version of this https://github.com/Gertje823/Vinted-Scraper/blob/main/scraper.py 
 
 # importing the requests library 
 import requests
