@@ -1,0 +1,11 @@
+
+{
+    "pg_server_admin": "postgres", 
+    "pg_server_admin_password": "123qweasdyxc", 
+    "pg_server_ip": "localhost", 
+    "vintracker_admin": "vintracker_admin", 
+    "vintracker_admin_pw": "1234qwer", 
+    "vintracker_scraper": "vintracker_scraper", 
+    "vintracker_scraper_pw": "1234qwer"
+ 
+    }

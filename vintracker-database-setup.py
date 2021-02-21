@@ -1,5 +1,7 @@
 from sqlalchemy import create_engine, insert, MetaData, Table, Integer, String, Column, select, DateTime, ForeignKey, Numeric, CheckConstraint
 from sqlalchemy_utils import database_exists, create_database
+import os
+import json
 
 def get_database_engine(username, password, ip, database):
     engine = create_engine("postgres+psycopg2://" + username + ":" + password + "@" + ip + "/" + database, echo=True)
@@ -43,25 +45,20 @@ def create_default_users(vintracker_admin, vintracker_admin_pw, vintracker_scrap
     return True
 
 def main():
+
+    # read local config file 
+    f = open (os.path.dirname(os.path.realpath(__file__)) + '\\config\\vinted_database_config.json')
     
-    # postgre server login data
-    pg_server_admin = "postgres"
-    pg_server_admin_password = "123qweasdyxc"
-    pg_server_ip = "localhost"
-
-    # vintracker database login data
-    vintracker_admin = "vintracker_admin" 
-    vintracker_admin_pw = "1234qwer"
-    vintracker_scraper = "vintracker_scraper"
-    vintracker_scraper_pw = "1234qwer"
-
+    # Reading from file 
+    config = json.loads(f.read())
+    
     # postgre engine instantiation
-    engine = get_database_engine(pg_server_admin, pg_server_admin_password, pg_server_ip, "vintracker_database")
+    engine = get_database_engine(config['pg_server_admin'], config['pg_server_admin_password'], config['pg_server_ip'], "vintracker_database")
 
-    # vintracker first time database setup
+    # # vintracker first time database setup
     create_default_database(engine)
     create_default_tables(engine)
-    create_default_users(vintracker_admin, vintracker_admin_pw, vintracker_scraper, vintracker_scraper_pw, engine)
+    create_default_users(config['vintracker_admin'], config['vintracker_admin_pw'], config['vintracker_scraper'], config['vintracker_scraper_pw'], engine)
 
 
 
