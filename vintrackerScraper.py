@@ -8,6 +8,11 @@ import os
 import time
 from datetime import datetime
 
+def get_symbol(price):
+        import re
+        pattern =  r'(\D*)[\d\,\.]+(\D*)'
+        g = re.match(pattern, price.strip()).groups()
+        return (g[0] or g[1]).strip()
 
 
 def scrape_user(user_ids):
@@ -23,16 +28,7 @@ def scrape_user(user_ids):
         'Connection': 'keep-alive',
         'TE': 'Trailers',
     }
-    req = s.get("https://www.vinted.de/member/44787336-mavkalis")
-    # print(req.text.find("csrf-token"))
-    csrfToken = req.text.split('<meta name="csrf-token" content="')[1].split('"')[0]
-    s.headers['X-CSRF-Token'] = csrfToken
-    params = (
-        ('localize', 'true'),
-    )
-
-
-
+ 
     user_data = {}
     user_data['users'] = []
 
@@ -41,6 +37,15 @@ def scrape_user(user_ids):
         # print(USER_ID)
         url = f'https://www.vinted.de/api/v2/users/{USER_ID}/items?page=1&per_page=200000'
         # print('ID=' + str(USER_ID))
+
+        req = s.get("https://www.vinted.de/member/44787336-mavkalis")
+        # print(req.text.find("csrf-token"))
+        csrfToken = req.text.split('<meta name="csrf-token" content="')[1].split('"')[0]
+        req = ""
+        s.headers['X-CSRF-Token'] = csrfToken
+        params = (
+            ('localize', 'true'),
+        )
 
         r = s.get(url)
         jsonresponse = r.json()
@@ -53,11 +58,13 @@ def scrape_user(user_ids):
         # f.write(str(str(jsonresponse).encode("utf-8")))
         # f.close()
 
+
         items = {}
         items['items'] = []
 
         # print(json.dumps(user_data))
         
+
         for json_items in jsonresponse['items']:
                 # check which
                 #  gender by checking item url
@@ -68,14 +75,21 @@ def scrape_user(user_ids):
                 else: 
                     item_gender =  'male'
 
-                # print(json.dumps(json_items))
-                # time.sleep(1)
+                # extract currency symbol from item price
+                currency_symbol = get_symbol(json_items['price'])
 
+
+                # OLD :  keys in items are item_id 
                 items['items'].append({                                           
-                    
+
                                 "item_id": json_items['id'],
+
+                                "initally_scraped":  datetime.now(),
+
+                                "user_id": jsonresponse['items'][0]['user_id'],
                                 "title": json_items['title'],
-                                "price": json_items['price'],
+                                "currency_symbol": currency_symbol,
+                                "price": json_items['price'].replace(currency_symbol, ''),
                                 "description": json_items['description'],
                                 "brand": json_items['brand'],
                                 "label": json_items['label'],
@@ -83,7 +97,8 @@ def scrape_user(user_ids):
                                 "gender": item_gender,
                                 "color1": json_items['color1'],
                                 "status": json_items['status'],
-                                "photos": json_items['photos'],
+                                # json_items['photos']
+                                "photos": "x",
                                 "catalog_id": json_items['catalog_id'],
                                 "url": json_items['url'],
                                 "reserved_for_user_id": json_items['reserved_for_user_id'],
@@ -92,12 +107,15 @@ def scrape_user(user_ids):
                                 "is_admin_alerted": json_items['is_admin_alerted'],
                                 "active_bid_count": json_items['active_bid_count'],
                                 
-                            })
-
+                            
+                })
+        # OLD : keys in users are user_ids
         user_data['users'].append({ 
-                    
-                                            
+            
                                     "user_id": jsonresponse['items'][0]['user_id'],
+
+                                    "initally_scraped":  datetime.now(),
+                                            
                                     "user_login": jsonresponse['items'][0]['user_login'],
                                     "following_count": jsonresponse['items'][0]['user']['following_count'],
                                     "followers_count": jsonresponse['items'][0]['user']['followers_count'],
@@ -130,7 +148,7 @@ def scrape_user(user_ids):
                                     "items": items['items']
 
 
-                                    })
+                                })
 
     # for user in user_data['users']:
     #     print(json.dumps(user))
@@ -147,10 +165,10 @@ def main():
     # config = json.loads(f.read())
 
     # print(config['user_ids'][0])
-    user_ids = [47015621,44332099] 
+    user_ids = [47015621,44332099, 44787336] 
     # 44205571,46942432,44918503,45161108,52931034,37142759,43942636,44332099]
     user_data = scrape_user(user_ids)
     for user in user_data['users']:
-        print(json.dumps(user))
+        print(json.dumps(user, default=str))
 
-main()    
+# main()    
