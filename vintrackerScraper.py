@@ -137,14 +137,6 @@ def scrape_user(user_ids):
                                     "country_title": jsonresponse['items'][0]['user']['country_title'],
                                     "is_hated": jsonresponse['items'][0]['user']['is_hated'],
 
-                                    "date_scraped": [{
-
-                                                        "h": datetime.now().strftime("%H"), 
-                                                        "m": datetime.now().strftime("%M"),  
-                                                        "s": datetime.now().strftime("%S")  
-                                                            
-                                                    }],
-
                                     "items": items['items']
 
 
