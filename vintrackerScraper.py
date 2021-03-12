@@ -84,7 +84,7 @@ def scrape_user(user_ids):
 
                                 "item_id": json_items['id'],
 
-                                "initally_scraped":  datetime.now(),
+                                "initially_scraped":  datetime.now(),
 
                                 "user_id": jsonresponse['items'][0]['user_id'],
                                 "title": json_items['title'],
@@ -114,7 +114,7 @@ def scrape_user(user_ids):
             
                                     "user_id": jsonresponse['items'][0]['user_id'],
 
-                                    "initally_scraped":  datetime.now(),
+                                    "initially_scraped":  datetime.now(),
                                             
                                     "user_login": jsonresponse['items'][0]['user_login'],
                                     "following_count": jsonresponse['items'][0]['user']['following_count'],
