@@ -146,10 +146,9 @@ def create_default_tables(engine):
 
 
                     Column('item_id', Integer, nullable=False, primary_key=True),
-
+                    Column('price', Numeric),
                     Column('title', String(100)),
                     Column('currency_symbol', String(10)),
-                    Column('price', Numeric),
                     Column('description', String(5000)),
                     Column('brand', String(100)),
                     Column('label', String(100)),
@@ -170,9 +169,9 @@ def create_default_tables(engine):
     item_data_change = Table('item_data_change', metadata, 
         
                     Column('initially_scraped', DateTime, nullable=False, index=True), 
-                    Column('user_id', Integer, nullable=False, primary_key=True),
-                    Column('item_id', Integer, nullable=False, primary_key=True), 
                     
+                    Column('item_id', Integer, nullable=False, primary_key=True), 
+                    Column('price', Numeric),
                     Column('title', String(100)),
                     Column('currency_symbol', String(10)),
                     Column('description', String(5000)),
@@ -186,7 +185,10 @@ def create_default_tables(engine):
                     Column('catalog_id', Integer),
                     Column('url', String(200)),
                     Column('reserved_for_user_id', String(25)),
+                    Column('favourites', Integer),
+                    Column('view_count', Integer),
                     Column('is_admin_alerted', Boolean),
+                    Column('active_bid_count', Integer),                    
                     )
     try:
         metadata.create_all(engine)
@@ -227,34 +229,81 @@ def create_default_users(
             print(error)
 
 
-def insert_user_data(user, connection):
+# TODO: insert_user_data insert only necessary changed values, make dynamic query
+def insert_user_data(user_data, connection):
+    # need to save copy for later re adding to user_data
+    item_data = user_data['items']
+# print(json.dumps(user, default=str))
+    # print(user_data.keys())
+    
+    # dont want user items in db user_data table
+    user_data.pop('items')
+    
+    insert_item_attribute_statements = str()
+    insert_item_value_statements = str()
+    counter = 0
+    
 
-    # print(json.dumps(user, default=str))
-    # TODO: insert_user_data insert only necessary changed values, make dynamic query
-    query = text("""INSERT INTO user_data(initially_scraped,user_id,user_login,following_count,followers_count,total_items_count,avg_response_time,volunteer_moderator,closet_promoted_until,profile_url,is_online,has_promoted_closet,about,feedback_reputation,is_shadow_banned,negative_feedback_count,country_iso_code,city_id,city_name,country_title_local,country_title,is_hated) VALUES(:initially_scraped,:user_id,:user_login,:following_count,:followers_count,:total_items_count,:avg_response_time,:volunteer_moderator,:closet_promoted_until,:profile_url,:is_online,:has_promoted_closet,:about,:feedback_reputation,:is_shadow_banned,:negative_feedback_count,:country_iso_code,:city_id,:city_name,:country_title_local,:country_title,:is_hated)""")
+    attribute_count = len(user_data.keys())
 
+    # build dynamic query
+    for item_attribute in user_data.keys():
+        if counter < (attribute_count - 1):
+            insert_item_attribute_statements += item_attribute + ","
+            insert_item_value_statements += ":" + item_attribute + "," 
+        else:
+            insert_item_attribute_statements += item_attribute + ")"
+            insert_item_value_statements += ":" + item_attribute + ")"                
+        counter += 1
+
+    query = text('INSERT INTO user_data(' + insert_item_attribute_statements + ' VALUES(' +  insert_item_value_statements )
+    # print(query)
+    # print(json.dumps(user_data, indent=4, sort_keys=False, default=str, ensure_ascii=False))
+    # # query = text("""INSERT INTO user_data(initially_scraped,user_id,user_login,following_count,followers_count,total_items_count,avg_response_time,volunteer_moderator,closet_promoted_until,profile_url,is_online,has_promoted_closet,about,feedback_reputation,is_shadow_banned,negative_feedback_count,country_iso_code,city_id,city_name,country_title_local,country_title,is_hated) VALUES(:initially_scraped,:user_id,:user_login,:following_count,:followers_count,:total_items_count,:avg_response_time,:volunteer_moderator,:closet_promoted_until,:profile_url,:is_online,:has_promoted_closet,:about,:feedback_reputation,:is_shadow_banned,:negative_feedback_count,:country_iso_code,:city_id,:city_name,:country_title_local,:country_title,:is_hated)""")
     try:
-        id = connection.execute(query, user)
-        print("Rows Added  = ", id.rowcount)
+        id = connection.execute(query, user_data)
+        print("Rows Added from " + user_data['user_login'] + " = ", id.rowcount)
 
     except SQLAlchemyError as e:
         error = str(e.__dict__['orig'])
         print(error)
 
-# find way to add photos, prob make column accept array values
+    user_data.update(({"items": item_data}))
 
-
-def insert_item_data(item, connection):
+# TODO: find way to add photos, prob make column accept array values
+# # passing item dict so use .keys() 13.03
+def insert_item_data(item_data, connection):
 
     # set timestamp
     # item.update([("initially_scraped", datetime.now())])
-    # TODO: insert_item_data insert only necessary changed values, make dynamic query
-    query = text("""INSERT INTO item_data(initially_scraped,user_id,item_id,title,currency_symbol,price,description,brand,label,size,gender,color1,status,catalog_id,url,reserved_for_user_id,favourites,view_count,is_admin_alerted,active_bid_count) VALUES(:initially_scraped,:user_id,:item_id,:title,:currency_symbol,:price,:description,:brand,:label,:size,:gender,:color1,:status,:catalog_id,:url,:reserved_for_user_id,:favourites,:view_count,:is_admin_alerted,:active_bid_count)""")
+    
+    # print(type(item_data))
+    # print(json.dumps(item_data, indent=4, sort_keys=False, default=str, ensure_ascii=False))
+    # print(item_data.keys())
 
+    insert_item_attribute_statements = str()
+    insert_item_value_statements = str()
+    counter = 0
+    attribute_count = len(item_data.keys())
+    item_attributes = item_data.keys()
+
+    for item_attribute in item_attributes:
+        if counter < (attribute_count - 1):
+            insert_item_attribute_statements += item_attribute + ","
+            insert_item_value_statements += ":" + item_attribute + "," 
+        else:
+            insert_item_attribute_statements += item_attribute + ")"
+            insert_item_value_statements += ":" + item_attribute + ")"                
+        counter += 1            
+        
+
+    query = text('INSERT INTO item_data(' + insert_item_attribute_statements + ' VALUES(' +  insert_item_value_statements )
+    # print(query)
+    
     try:
-        # print(item)
-        id = connection.execute(query, item)
-        print("Rows Added  = ", id.rowcount)
+        
+        id = connection.execute(query, item_data)
+        print("Rows Added from " + str(item_data['user_id']) + " = ", id.rowcount)
 
     except SQLAlchemyError as e:
         error = str(e.__dict__['orig'])
@@ -279,8 +328,6 @@ def get_item_data(item_id, connection):
 
         for row in query_results:
             row_as_dict = dict(row)
-
-        # print("Rows Added  = ",id.rowcount)
 
     except SQLAlchemyError as e:
         error = str(e.__dict__['orig'])
@@ -392,43 +439,31 @@ def insert_item_change(item_data, connection):
 
     # set timestamp
     # item.update([("initially_scraped", datetime.now())])
-
-    # TODO: insert_item_change insert only necessary changed values, make dynamic query
-
-    print(str(item_data[0].keys()))
-    # for item_attribute in item_data:
-    #     print(item_attribute.keys())
-    insert_item_statements = str()
+    insert_item_attribute_statements = str()
     insert_item_value_statements = str()
     counter = 0
     attribute_count = len(item_data[0].keys())
-    # build insert query up to VALUES part of query statement 
+    # build dynamic query
     for item_attribute in item_data[0].keys():
         if counter < (attribute_count - 1):
-            insert_item_statements += item_attribute + ","
+            insert_item_attribute_statements += item_attribute + ","
+            insert_item_value_statements += ":" + item_attribute + "," 
         else:
-            insert_item_statements += item_attribute + ")"
-        if counter < (attribute_count - 1):
-            insert_item_value_statements += ":" + item_attribute + ","  
-        else:
-            insert_item_value_statements += ":" + item_attribute + ")"    
+            insert_item_attribute_statements += item_attribute + ")"
+            insert_item_value_statements += ":" + item_attribute + ")"                
         counter += 1
     
-    print(insert_item_statements)
-    print(insert_item_value_statements)
-    query = text("""INSERT INTO item_data_change(initially_scraped,user_id,item_id,url,title,price,brand,label,size,favourites,view_count,active_bid_count,photos) VALUES(:initially_scraped,:user_id,:item_id,:url,:title,:price,:brand,:label,:size,:favourites,:view_count,:active_bid_count,:photos)""")
+    query = text('INSERT INTO item_data_change(' + insert_item_attribute_statements + ' VALUES(' +  insert_item_value_statements )
+    
+    try:
+        print(type(item_data))
+        id = connection.execute(query, item_data)
+        print("Rows Added from " + str(item_data['user_id']) + " = ", id.rowcount)
 
-    # try:
-    #     # print(item)
-    #     id = connection.execute(query, item_data)
-        
-    #     print("Rows Added  = ", id.rowcount)
+    except SQLAlchemyError as e:
+        error = str(e.__dict__['orig'])
+        print(error)
 
-    # except SQLAlchemyError as e:
-    #     error = str(e.__dict__['orig'])
-    #     print(error)
-
-    return True
 
 
 def update_user_data(data, connection):
@@ -517,13 +552,14 @@ def main():
 
 def debug_main():
 
-    # read local config file
+    # # read local config file
     f = open(os.path.dirname(os.path.realpath(__file__)) +
              '\\config\\vinted_database_config.json')
 
-    # reading config from file
+    # # reading config from file
     config = json.loads(f.read())
-    # create database engine
+    
+    # # create database engine
     engine = get_database_engine(
         config['pg_server_admin'],
         config['pg_server_admin_password'],
@@ -531,7 +567,7 @@ def debug_main():
         "vintracker_database",
         False)
 
-    # vintracker first time database setup
+    # # vintracker first time database setup
     create_default_database(engine)
     create_default_tables(engine)
     create_default_users(
@@ -544,63 +580,49 @@ def debug_main():
 
     connection = engine.connect()
 
-    # insert user data to database
-    user_ids = [52446954]
+    # # user data to be scraped 
+    user_ids = [52446954, 54756595, 44787336]
 
     vinted_data = vintrackerScraper.scrape_user(user_ids)
-    # user_index =
-    # user = list()
-    # users = vinted_data['users']
-    # print( users.get(52446954)  )
 
-    # print( vinted_data['users'][0].get(52446954)  )
-    # for user in vinted_data['users']:
-    #     # print( user  )
-    #     # insert_user_data(user, connection)
-    #     insert_user_data(user, connection)
+    # # insert users to db
+    for user in vinted_data['users']:
+        # print( user  )
+        # insert_user_data(user, connection)
+        insert_user_data(user, connection)
 
-    # print(json.dumps(item_data['users']))
-    # print(json.dumps(vinted_data.get("52446954"), default=str))
-    # insert_user_data(vinted_data['users'][0], connection)
-    # for user in vinted_data['users']:
-    #     for item in user['items']:
-    #         insert_item_data(item, connection)
-    # print(json.dumps(vinted_data['users'][0]['items'], default=str ))
+    
+    # # insert every scraped users items to db
+    for user in vinted_data['users']:
+        for item in user['items']:
+            # print(json.dumps(item, indent=4, default=str, ensure_ascii=False))
+            insert_item_data(item, connection)
 
-    # print(row_as_dict)
-    # row_as_dict.pop('initially_scraped')
-    # row_as_dict.pop('photos')
-    # row_as_json = json.dumps(row_as_dict, indent=4, sort_keys=False, default=str, ensure_ascii=False)
-    # vinted_data['users'][0]['items'][0].pop('photos')
-    # vinted_data['users'][0]['items'][0].pop('initially_scraped')
-    # print(json.dumps(vinted_data['users'][0]['items'][0], indent=4, sort_keys=False, default=str, ensure_ascii=False))
-    # vinted_data_as_json = json.dumps(vinted_data['users'][0]['items'][0]['price'], indent=4, sort_keys=False, default=str)
-    # print(vinted_data_as_json)
 
-    # insert all items from scraped users
-    # for user in vinted_data['users']:
-    #     # print( user  )
-    #     # insert_user_data(user, connection)
-    #     insert_item_data(user['items'], connection)
-
-    # get all items  that exist in scraped users
+    # # get all items that exist in scraped users
     # for user in vinted_data['users']:
     #     for item in user['items']:
     #         # item_data = get_item_data(item['item_id'], connection)
     #         print(item_data)
 
 
+    # # get item change
+    # item_change = dict()
+    # for user in vinted_data['users']:
+    #     item_change = get_scraped_item_data_difference(user['items'], connection)
+    #     db_item = get_item_data(item_change[0]["item_id"],connection)
 
-    item_change = dict()
-    for user in vinted_data['users']:
-        item_change = get_scraped_item_data_difference(user['items'], connection)
-        db_item = get_item_data(item_change[0]["item_id"],connection)
+
+
+
+
+
         # item_change["view_count"] = random.randint(1, 500) 
         # print(json.dumps(db_item, indent=4, default=str))
         # print(json.dumps(item_change, indent=4, default=str))
     # print(json.dumps(get_item_data(5345455, connection), indent=4, sort_keys=False, default=str, ensure_ascii=False))
     # print(json.dumps(item_change, indent=4, default=str))
-    insert_item_change(item_change,connection)
+    # insert_item_change(item_change,connection)
     # for item in item_change:
     #     db_item = get_item_data(item['item_id'], connection)
     #     # print(db_item['title'] + "change since: " + str(db_item['initially_scraped']) +  "\n")
