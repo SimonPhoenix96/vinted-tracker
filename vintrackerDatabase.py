@@ -233,7 +233,7 @@ def create_default_users(
 def insert_user_data(user_data, connection):
     # need to save copy for later re adding to user_data
     item_data = user_data['items']
-# print(json.dumps(user, default=str))
+    # print(json.dumps(user, default=str))
     # print(user_data.keys())
     
     # dont want user items in db user_data table
@@ -270,8 +270,7 @@ def insert_user_data(user_data, connection):
 
     user_data.update(({"items": item_data}))
 
-# TODO: find way to add photos, prob make column accept array values
-# # passing item dict so use .keys() 13.03
+# passing item dict so use .keys() 13.03
 def insert_item_data(item_data, connection):
 
     # set timestamp
@@ -309,8 +308,69 @@ def insert_item_data(item_data, connection):
         error = str(e.__dict__['orig'])
         print(error)
 
+def insert_item_change(item_data, connection):
 
-def get_user_data():
+    # set timestamp
+    # item.update([("initially_scraped", datetime.now())])
+    insert_item_attribute_statements = str()
+    insert_item_value_statements = str()
+    counter = 0
+    attribute_count = len(item_data[0].keys())
+    # build dynamic query
+    for item_attribute in item_data[0].keys():
+        if counter < (attribute_count - 1):
+            insert_item_attribute_statements += item_attribute + ","
+            insert_item_value_statements += ":" + item_attribute + "," 
+        else:
+            insert_item_attribute_statements += item_attribute + ")"
+            insert_item_value_statements += ":" + item_attribute + ")"                
+        counter += 1
+    
+    query = text('INSERT INTO item_data_change(' + insert_item_attribute_statements + ' VALUES(' +  insert_item_value_statements )
+    
+    try:
+        print(type(item_data))
+        id = connection.execute(query, item_data)
+        print("Rows Added from " + str(item_data['user_id']) + " = ", id.rowcount)
+
+    except SQLAlchemyError as e:
+        error = str(e.__dict__['orig'])
+        print(error)
+
+def get_change_user_data(start, end, user_id):
+    return True
+
+
+def get_change_item_data(start, end, item_id):
+    return True
+
+def get_user_data(user_id, connection):
+
+    query = text(
+        "SELECT * FROM user_data WHERE user_id='" +
+        str(user_id) +
+        "'")
+    row_as_dict = dict()
+
+    try:
+        # print(item)
+        query_results = connection.execute(query)
+
+        for row in query_results:
+            row_as_dict = dict(row)
+        
+        row_as_dict['initially_scraped'] = str(row_as_dict['initially_scraped'])
+    except SQLAlchemyError as e:
+        error = str(e.__dict__['orig'])
+        print(error)
+
+    # print(json.dumps(row_as_dict, indent=4, sort_keys=False, default=str, ensure_ascii=False))
+
+    if len(row_as_dict) == 0:
+        return "Error: Item not found!"
+    else:
+        return row_as_dict
+
     return True
 
 
@@ -341,8 +401,90 @@ def get_item_data(item_id, connection):
         return row_as_dict
 
 
-def get_scraped_user_data_data_difference():
-    return True
+def get_scraped_user_data_difference(scraped_users, connection):
+
+    # add unchanged or new items here
+    users_to_pop = list()
+
+
+    for user in scraped_users:
+        # remove for this function irrelevant items list
+        # print(json.dumps(user, default=str))
+        user.pop('items')
+        # get user from database
+        db_user = dict()
+        db_user = get_user_data(user['user_id'], connection)
+        # if user doesnt exist in database skip to next user
+        if isinstance(db_user, str):
+            print(
+                "\nuser is currently not in database! inserting into db and popping user from scraped users\n")
+            insert_user_data(user, connection)
+            users_to_pop.append(scraped_users.index(user))
+            continue
+
+        # save original scrape date and user_id, as it gets deleted for later
+        # comparsion and re-added when inserting changed data to
+        # db.user_data_change
+        date_scraped = user['initially_scraped']
+        user_id = db_user['user_id']
+        # user_id = db_user['user_id']
+
+        # TEST DATA!!!
+        # user['title'] = "fuckity fuck"
+        # db_user['favourites'] = 65
+        # print(str(user['user_id']) + " view count: " + str(user['view_count']) + " and in db: " + str(db_user["view_count"]))
+
+        # harmonize data sets
+        db_user.pop('initially_scraped')
+        user.pop('initially_scraped')
+
+        # print(json.dumps(db_user, indent=4))
+        # print(json.dumps(user, indent=4))
+
+        unchanged_user_attributes = list()
+        if db_user == user:
+            # print("\nno change! pop '" + user['title'] + "' from scraped_users\n")
+            users_to_pop.append(scraped_users.index(user))
+            continue
+        else:
+            # print("\nsomething changed!\n")
+            for user_attribute in user:
+                # find unchanged users
+                if user[user_attribute] == db_user[user_attribute]:
+                    unchanged_user_attributes.append(user_attribute)
+                else:
+                    if user_attribute in arithmetic_attributes:
+                        # print(user_attribute + str(type(user[user_attribute])) + "-" +  str(type(db_user[user_attribute])))
+                        scraped_users[scraped_users.index(
+                            user)][user_attribute] = user[user_attribute] - db_user[user_attribute]
+
+        # pop unchanged user_attributes from changed user (minimize database
+        # size/redundancy this way )
+        for unchanged_attribute in unchanged_user_attributes:
+            # user.pop(unchanged_attribute)
+            scraped_users[scraped_users.index(user)].pop(unchanged_attribute)
+
+        # re-append date_scraped, user_id for insertion to db as these shouldnt be non existent
+        scraped_users[scraped_users.index(user)].update(
+            ({"initially_scraped": date_scraped, "user_id": user_id}))
+
+    # print(len(scraped_users))
+    # print(users_to_pop)
+
+    # pop unchanged users or new users from scraped_users, need to pop in
+    # reverse as index values change dynamically as users get popped
+    for user in sorted(users_to_pop, reverse=True):
+        # print(user)
+        # print(scraped_users[user])
+        scraped_users.pop(user)
+
+    # print(json.dumps(scraped_users, default=str, indent=4))
+
+        # print(60.0-65.0)
+        # print(type(user))
+    # print(len(scraped_users))
+    return scraped_users
+
 
 
 # returns items and its values that need to be updated/inserted into the
@@ -435,34 +577,6 @@ def get_scraped_item_data_difference(scraped_items, connection):
     return scraped_items
 
 
-def insert_item_change(item_data, connection):
-
-    # set timestamp
-    # item.update([("initially_scraped", datetime.now())])
-    insert_item_attribute_statements = str()
-    insert_item_value_statements = str()
-    counter = 0
-    attribute_count = len(item_data[0].keys())
-    # build dynamic query
-    for item_attribute in item_data[0].keys():
-        if counter < (attribute_count - 1):
-            insert_item_attribute_statements += item_attribute + ","
-            insert_item_value_statements += ":" + item_attribute + "," 
-        else:
-            insert_item_attribute_statements += item_attribute + ")"
-            insert_item_value_statements += ":" + item_attribute + ")"                
-        counter += 1
-    
-    query = text('INSERT INTO item_data_change(' + insert_item_attribute_statements + ' VALUES(' +  insert_item_value_statements )
-    
-    try:
-        print(type(item_data))
-        id = connection.execute(query, item_data)
-        print("Rows Added from " + str(item_data['user_id']) + " = ", id.rowcount)
-
-    except SQLAlchemyError as e:
-        error = str(e.__dict__['orig'])
-        print(error)
 
 
 
@@ -505,12 +619,6 @@ def delete_item_data(data):
     return True
 
 
-def get_change_user_data(start, end, data):
-    return True
-
-
-def get_change_item_data(start, end, data):
-    return True
 
 
 # def get_unique_items(items):
@@ -586,17 +694,17 @@ def debug_main():
     vinted_data = vintrackerScraper.scrape_user(user_ids)
 
     # # insert users to db
-    for user in vinted_data['users']:
+    # for user in vinted_data['users']:
         # print( user  )
         # insert_user_data(user, connection)
-        insert_user_data(user, connection)
+        # insert_user_data(user, connection)
 
     
     # # insert every scraped users items to db
-    for user in vinted_data['users']:
-        for item in user['items']:
-            # print(json.dumps(item, indent=4, default=str, ensure_ascii=False))
-            insert_item_data(item, connection)
+    # for user in vinted_data['users']:
+    #     for item in user['items']:
+    #         # print(json.dumps(item, indent=4, default=str, ensure_ascii=False))
+    #         insert_item_data(item, connection)
 
 
     # # get all items that exist in scraped users
@@ -611,53 +719,18 @@ def debug_main():
     # for user in vinted_data['users']:
     #     item_change = get_scraped_item_data_difference(user['items'], connection)
     #     db_item = get_item_data(item_change[0]["item_id"],connection)
-
-
-
-
-
-
-        # item_change["view_count"] = random.randint(1, 500) 
-        # print(json.dumps(db_item, indent=4, default=str))
-        # print(json.dumps(item_change, indent=4, default=str))
-    # print(json.dumps(get_item_data(5345455, connection), indent=4, sort_keys=False, default=str, ensure_ascii=False))
-    # print(json.dumps(item_change, indent=4, default=str))
-    # insert_item_change(item_change,connection)
-    # for item in item_change:
-    #     db_item = get_item_data(item['item_id'], connection)
-    #     # print(db_item['title'] + "change since: " + str(db_item['initially_scraped']) +  "\n")
-    #     item.update({'title': db_item['title'], 'change_since': str(
-    #         db_item['initially_scraped'])})
-        # print(
-        #     "\nITEM IN DB: \n" +
-        #     json.dumps(
-        #         db_item,
-        #         indent=4,
-        #         sort_keys=False,
-        #         default=str,
-        #         ensure_ascii=False))
-        # print(
-        #     "\nITEM CHANGE: \n" +
-        #     json.dumps(
-        #         item,
-        #         indent=4,
-        #         default=str,
-        #         ensure_ascii=False))
-    # update_item_data(item_change[0], connection)
-        # db_item = get_item_data(item['item_id'], connection)
-        # print(
-        #     "\nITEM IN DB AFTER UPDATING: \n" +
-        #     json.dumps(
-        #         db_item,
-        #         indent=4,
-        #         default=str,
-        #         ensure_ascii=False))
-
     
     
-    
-    
-    
+    # # get user change 
+    user_change = dict()
+    user_change = get_scraped_user_data_difference(vinted_data['users'], connection)
+    db_item = get_user_data(user_change[0]["user_id"],connection)
+
+    # print(json.dumps(user_change, indent=4, ensure_ascii=False))
+
+    # get user data 
+    # print(json.dumps(get_user_data(user_ids[0], connection), indent=4, ensure_ascii=False))
+
     connection.close()
     engine.dispose()
 
