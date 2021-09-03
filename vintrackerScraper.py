@@ -37,8 +37,9 @@ def scrape_user(user_ids):
         # print(USER_ID)
         url = f'https://www.vinted.de/api/v2/users/{USER_ID}/items?page=1&per_page=200000'
         # print('ID=' + str(USER_ID))
-
+        
         req = s.get("https://www.vinted.de/member/44787336-mavkalis")
+        
         # print(req.text.find("csrf-token"))
         csrfToken = req.text.split('<meta name="csrf-token" content="')[1].split('"')[0]
         req = ""
@@ -49,11 +50,17 @@ def scrape_user(user_ids):
 
         r = s.get(url)
         jsonresponse = r.json()
-        json_items = jsonresponse['items']
 
+        json_items = jsonresponse['items']
+        # print(json_items)
+
+        # check if web request sucessful
+        if json_items == []:
+                print("user deleted acc ||  is on vacation mode || has no items, skipping to next user_id!")
+                continue
 
         # DEBUG
-        # print(jsonresponse)
+        #print("test if web request succesful: " + jsonresponse is None)
         # f = open("./vinted_raw.json", "w")
         # f.write(str(str(jsonresponse).encode("utf-8")))
         # f.close()
@@ -157,10 +164,10 @@ def main():
     # config = json.loads(f.read())
 
     # print(config['user_ids'][0])
-    user_ids = [47015621,44332099, 44787336] 
+    user_ids = [47015621, 44332099, 44787336] 
     # 44205571,46942432,44918503,45161108,52931034,37142759,43942636,44332099]
     user_data = scrape_user(user_ids)
     for user in user_data['users']:
-        print(json.dumps(user, default=str))
+        print(json.dumps(user, default=str, indent=4))
 
 # main()    
