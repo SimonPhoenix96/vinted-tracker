@@ -2,6 +2,7 @@
 
 # importing the requests library 
 import requests
+import cfscrape
 import json
 from fake_useragent import UserAgent 
 import os
@@ -18,7 +19,7 @@ def get_symbol(price):
 def scrape_user(user_ids):
     # user_ids = [47015621]
 
-    s = requests.Session()
+    s = cfscrape.create_scraper()
     ua = UserAgent()
     s.headers = {
         'User-Agent': ua.firefox,
@@ -38,7 +39,7 @@ def scrape_user(user_ids):
         url = f'https://www.vinted.de/api/v2/users/{USER_ID}/items?page=1&per_page=200000'
         # print('ID=' + str(USER_ID))
         
-        req = s.get("https://www.vinted.de/member/44787336-mavkalis")
+        req = s.get("https://www.vinted.de/member/79562987-charliekitter")
         
         # print(req.text.find("csrf-token"))
         csrfToken = req.text.split('<meta name="csrf-token" content="')[1].split('"')[0]
@@ -48,29 +49,30 @@ def scrape_user(user_ids):
             ('localize', 'true'),
         )
 
+        # print("DEBUG - csrfToken = " + csrfToken)
+
         r = s.get(url)
         jsonresponse = r.json()
 
         json_items = jsonresponse['items']
-        # print(json_items)
 
         # check if web request sucessful
         if json_items == []:
-                print("user deleted acc ||  is on vacation mode || has no items, skipping to next user_id!")
-                continue
+            print("user deleted acc ||  is on vacation mode || has no items, skipping to next user_id!")
+            continue
 
         # DEBUG
-        #print("test if web request succesful: " + jsonresponse is None)
+        # print("test if web request succesful, check ./vinted_raw.json")
         # f = open("./vinted_raw.json", "w")
-        # f.write(str(str(jsonresponse).encode("utf-8")))
+        # f.write(json.dumps(jsonresponse))
         # f.close()
+        
+
+
 
 
         items = {}
         items['items'] = []
-
-        # print(json.dumps(user_data))
-        
 
         for json_items in jsonresponse['items']:
                 # check which
@@ -128,14 +130,13 @@ def scrape_user(user_ids):
                                     "followers_count": jsonresponse['items'][0]['user']['followers_count'],
                                     "total_items_count": jsonresponse['items'][0]['user']['total_items_count'],
                                     "avg_response_time": jsonresponse['items'][0]['user']['avg_response_time'],
-                                    "volunteer_moderator": jsonresponse['items'][0]['user']['volunteer_moderator'],
+                                    "moderator": jsonresponse['items'][0]['user']['moderator'],
                                     "closet_promoted_until": jsonresponse['items'][0]['user']['closet_promoted_until'],
                                     "profile_url": jsonresponse['items'][0]['user']['profile_url'],
                                     "is_online": jsonresponse['items'][0]['user']['is_online'],
                                     "has_promoted_closet": jsonresponse['items'][0]['user']['has_promoted_closet'],
                                     "about": jsonresponse['items'][0]['user']['about'],
                                     "feedback_reputation": jsonresponse['items'][0]['user']['feedback_reputation'],
-                                    "is_shadow_banned": jsonresponse['items'][0]['user']['is_shadow_banned'],
                                     "negative_feedback_count": jsonresponse['items'][0]['user']['negative_feedback_count'],
                                     "country_iso_code": jsonresponse['items'][0]['user']['country_iso_code'],
                                     "city_id": jsonresponse['items'][0]['user']['city_id'],
@@ -164,10 +165,10 @@ def main():
     # config = json.loads(f.read())
 
     # print(config['user_ids'][0])
-    user_ids = [47015621, 44332099, 44787336] 
+    user_ids = [79562987] 
     # 44205571,46942432,44918503,45161108,52931034,37142759,43942636,44332099]
     user_data = scrape_user(user_ids)
     for user in user_data['users']:
         print(json.dumps(user, default=str, indent=4))
 
-# main()    
+main()    
