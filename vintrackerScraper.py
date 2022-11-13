@@ -4,13 +4,14 @@
 import requests
 import cfscrape
 import json
-from fake_useragent import UserAgent 
+# import fake_useragent
 import os
 import time
 from datetime import datetime
 
 def get_symbol(price):
         import re
+        print("price =" + price)
         pattern =  r'(\D*)[\d\,\.]+(\D*)'
         g = re.match(pattern, price.strip()).groups()
         return (g[0] or g[1]).strip()
@@ -20,9 +21,9 @@ def scrape_user(user_ids):
     # user_ids = [47015621]
 
     s = cfscrape.create_scraper()
-    ua = UserAgent()
+    # ua = UserAgent()
     s.headers = {
-        'User-Agent': ua.firefox,
+        'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/107.0.0.0 Safari/537.36',
         'Accept': 'application/json, text/plain, */*',
         'Accept-Language': 'en',
         'DNT': '1',
@@ -85,8 +86,10 @@ def scrape_user(user_ids):
                     item_gender =  'male'
 
                 # extract currency symbol from item price
-                currency_symbol = get_symbol(json_items['price'])
-
+                if json_items['price'] is not None:
+                    currency_symbol = json_items['price']['currency_code']
+                else:
+                    currency_symbol = 'N/A'
 
                 # OLD :  keys in items are item_id 
                 items['items'].append({                                           
@@ -98,7 +101,7 @@ def scrape_user(user_ids):
                                 "user_id": jsonresponse['items'][0]['user_id'],
                                 "title": json_items['title'],
                                 "currency_symbol": currency_symbol,
-                                "price": json_items['price'].replace(currency_symbol, ''),
+                                "price": json_items['price']['amount'],
                                 "description": json_items['description'],
                                 "brand": json_items['brand'],
                                 "label": json_items['label'],
@@ -171,4 +174,4 @@ def main():
     for user in user_data['users']:
         print(json.dumps(user, default=str, indent=4))
 
-main()    
+# main()    
