@@ -1,15 +1,15 @@
-from sqlalchemy import create_engine, insert, MetaData, Table, Integer, String, Float, Column, select, DateTime, Boolean, ForeignKey, Numeric, CheckConstraint, TIMESTAMP
+from sqlalchemy import create_engine, insert, MetaData, Table, Integer, BigInteger, String, Float, Column, select, DateTime, Boolean, ForeignKey, Numeric, CheckConstraint, TIMESTAMP
 from sqlalchemy_utils import database_exists, create_database
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.sql import text
 from sqlalchemy.dialects.postgresql import DOUBLE_PRECISION
+import psycopg2
 import os
 import time
 import json
 import decimal
 from datetime import datetime
 from itertools import chain
-
 import random
 
 # Vintracker Modules
@@ -46,7 +46,7 @@ def get_database_engine(username, password, ip, database, debug):
 
     try:
         engine = create_engine(
-            "postgres+psycopg2://" +
+            "postgresql+psycopg2://" +
             username +
             ":" +
             password +
@@ -76,9 +76,9 @@ def create_default_tables(engine):
 
     metadata = MetaData()
 
-    login_data = Table('vintracker_data', metadata, 
-                    Column('username', Integer, nullable=False, primary_key=True), 
-                    Column('hashed_password', String(200), nullable=False), 
+    login_data = Table('vintracker_data', metadata,
+                    Column('username', Integer, nullable=False, primary_key=True),
+                    Column('hashed_password', String(200), nullable=False),
                     Column('config', String)
                     )
 
@@ -86,7 +86,7 @@ def create_default_tables(engine):
 
                     Column('initially_scraped', DateTime(timezone=True), nullable=False, index=True),
 
-                    Column('user_id', Integer, nullable=False, primary_key=True),
+                    Column('user_id', BigInteger, nullable=False, primary_key=True),
                     Column('user_login', String(50), nullable=False),
 
                     Column('following_count', Integer),
@@ -108,13 +108,14 @@ def create_default_tables(engine):
                     Column('country_title_local', String(20)),
                     Column('country_title', String(20)),
                     Column('is_hated', Boolean),
+                    Column('moderator', Boolean),
                     )
 
     user_data_change = Table('user_data_change', metadata,
 
                     Column('date_time_scraped', DateTime, nullable=False, index=True),
 
-                    Column('user_id', Integer, nullable=False, primary_key=True),
+                    Column('user_id', BigInteger, nullable=False, primary_key=True),
                     Column('user_login', String(50), nullable=False),
 
                     Column('following_count', Integer),
@@ -142,10 +143,10 @@ def create_default_tables(engine):
 
                     Column('initially_scraped', DateTime(timezone=True), nullable=False, index=True),
 
-                    Column('user_id', Integer, nullable=False),
+                    Column('user_id', BigInteger, nullable=False),
 
 
-                    Column('item_id', Integer, nullable=False, primary_key=True),
+                    Column('item_id', BigInteger, nullable=False, primary_key=True),
                     Column('price', Numeric),
                     Column('title', String(100)),
                     Column('currency_symbol', String(10)),
@@ -166,11 +167,11 @@ def create_default_tables(engine):
                     Column('active_bid_count', Integer),
                     )
 
-    item_data_change = Table('item_data_change', metadata, 
-        
-                    Column('initially_scraped', DateTime, nullable=False, index=True), 
-                    
-                    Column('item_id', Integer, nullable=False, primary_key=True), 
+    item_data_change = Table('item_data_change', metadata,
+
+                    Column('initially_scraped', DateTime, nullable=False, index=True),
+
+                    Column('item_id', BigInteger, nullable=False),
                     Column('price', Numeric),
                     Column('title', String(100)),
                     Column('currency_symbol', String(10)),
@@ -188,7 +189,7 @@ def create_default_tables(engine):
                     Column('favourites', Integer),
                     Column('view_count', Integer),
                     Column('is_admin_alerted', Boolean),
-                    Column('active_bid_count', Integer),                    
+                    Column('active_bid_count', Integer),
                     )
     try:
         metadata.create_all(engine)
@@ -235,14 +236,14 @@ def insert_user_data(user_data, connection):
     item_data = user_data['items']
     # print(json.dumps(user, default=str))
     # print(user_data.keys())
-    
+
     # dont want user items in db user_data table
     user_data.pop('items')
-    
+
     insert_item_attribute_statements = str()
     insert_item_value_statements = str()
     counter = 0
-    
+
 
     attribute_count = len(user_data.keys())
 
@@ -250,10 +251,10 @@ def insert_user_data(user_data, connection):
     for item_attribute in user_data.keys():
         if counter < (attribute_count - 1):
             insert_item_attribute_statements += item_attribute + ","
-            insert_item_value_statements += ":" + item_attribute + "," 
+            insert_item_value_statements += ":" + item_attribute + ","
         else:
             insert_item_attribute_statements += item_attribute + ")"
-            insert_item_value_statements += ":" + item_attribute + ")"                
+            insert_item_value_statements += ":" + item_attribute + ")"
         counter += 1
 
     query = text('INSERT INTO user_data(' + insert_item_attribute_statements + ' VALUES(' +  insert_item_value_statements )
@@ -275,7 +276,7 @@ def insert_item_data(item_data, connection):
 
     # set timestamp
     # item.update([("initially_scraped", datetime.now())])
-    
+
     # print(type(item_data))
     # print(json.dumps(item_data, indent=4, sort_keys=False, default=str, ensure_ascii=False))
     # print(item_data.keys())
@@ -289,18 +290,18 @@ def insert_item_data(item_data, connection):
     for item_attribute in item_attributes:
         if counter < (attribute_count - 1):
             insert_item_attribute_statements += item_attribute + ","
-            insert_item_value_statements += ":" + item_attribute + "," 
+            insert_item_value_statements += ":" + item_attribute + ","
         else:
             insert_item_attribute_statements += item_attribute + ")"
-            insert_item_value_statements += ":" + item_attribute + ")"                
-        counter += 1            
-        
+            insert_item_value_statements += ":" + item_attribute + ")"
+        counter += 1
+
 
     query = text('INSERT INTO item_data(' + insert_item_attribute_statements + ' VALUES(' +  insert_item_value_statements )
-    # print(query)
-    
+    print(query)
+
     try:
-        
+
         id = connection.execute(query, item_data)
         print("Rows Added from " + str(item_data['user_id']) + " = ", id.rowcount)
 
@@ -309,33 +310,38 @@ def insert_item_data(item_data, connection):
         print(error)
 
 def insert_item_change(item_data, connection):
+    print(item_data)
 
     # set timestamp
     # item.update([("initially_scraped", datetime.now())])
     insert_item_attribute_statements = str()
     insert_item_value_statements = str()
     counter = 0
-    attribute_count = len(item_data[0].keys())
+    attribute_count = len(item_data.keys())
     # build dynamic query
-    for item_attribute in item_data[0].keys():
+    for item_attribute in item_data.keys():
         if counter < (attribute_count - 1):
             insert_item_attribute_statements += item_attribute + ","
-            insert_item_value_statements += ":" + item_attribute + "," 
+            insert_item_value_statements += ":" + item_attribute + ","
         else:
             insert_item_attribute_statements += item_attribute + ")"
-            insert_item_value_statements += ":" + item_attribute + ")"                
+            insert_item_value_statements += ":" + item_attribute + ")"
         counter += 1
-    
+
     query = text('INSERT INTO item_data_change(' + insert_item_attribute_statements + ' VALUES(' +  insert_item_value_statements )
-    
+
     try:
-        print(type(item_data))
+        print(query)
         id = connection.execute(query, item_data)
-        print("Rows Added from " + str(item_data['user_id']) + " = ", id.rowcount)
+        print("Rows Added from ItemID " + str(item_data['item_id']) + " = ", id.rowcount)
 
     except SQLAlchemyError as e:
         error = str(e.__dict__['orig'])
         print(error)
+
+def insert_user_change(user_change, connection):
+    print(user_change)
+
 
 def get_change_user_data(start, end, user_id):
     return True
@@ -358,7 +364,7 @@ def get_user_data(user_id, connection):
 
         for row in query_results:
             row_as_dict = dict(row)
-        
+
         row_as_dict['initially_scraped'] = str(row_as_dict['initially_scraped'])
     except SQLAlchemyError as e:
         error = str(e.__dict__['orig'])
@@ -485,8 +491,6 @@ def get_scraped_user_data_difference(scraped_users, connection):
     # print(len(scraped_users))
     return scraped_users
 
-
-
 # returns items and its values that need to be updated/inserted into the
 # database
 def get_scraped_item_data_difference(scraped_items, connection):
@@ -495,13 +499,15 @@ def get_scraped_item_data_difference(scraped_items, connection):
     items_to_pop = list()
 
     for item in scraped_items:
+        # print(item)
         # get item from database
         db_item = dict()
         db_item = get_item_data(item['item_id'], connection)
+        # print(db_item)
         # if item doesnt exist in database skip to next item
         if isinstance(db_item, str):
             print(
-                "\nitem is currently not in database! inserting into db and popping item from scraped items\n")
+                "\nitem is currently not in database!adding items and popping item from scraped items and continuing\n")
             insert_item_data(item, connection)
             items_to_pop.append(scraped_items.index(item))
             continue
@@ -547,7 +553,7 @@ def get_scraped_item_data_difference(scraped_items, connection):
                     if item_attribute in arithmetic_attributes:
                         # print(item_attribute + str(type(item[item_attribute])) + "-" +  str(type(db_item[item_attribute])))
                         scraped_items[scraped_items.index(
-                            item)][item_attribute] = item[item_attribute] - db_item[item_attribute]
+                            item)][item_attribute] = db_item[item_attribute] - item[item_attribute]
 
         # pop unchanged item_attributes from changed item (minimize database
         # size/redundancy this way )
@@ -576,13 +582,8 @@ def get_scraped_item_data_difference(scraped_items, connection):
     # print(len(scraped_items))
     return scraped_items
 
-
-
-
-
 def update_user_data(data, connection):
     return True
-
 
 def update_item_data(item, connection):
     # print(json.dumps(item, default=str))
@@ -600,7 +601,7 @@ def update_item_data(item, connection):
             if item_attribute in string_attributes:
                 item.update([(item_attribute, item[item_attribute])])
     print("\nitem_change summed with db item for later updating the db_item:\n" +  json.dumps(item, default=str))
-    
+
     # try:
     #     # id = connection.execute(query, item)
     #     print("Rows Added  = ", id.rowcount)
@@ -618,9 +619,6 @@ def delete_user_data(data):
 def delete_item_data(data):
     return True
 
-
-
-
 # def get_unique_items(items):
 #     unique = []
 
@@ -634,39 +632,56 @@ def delete_item_data(data):
 def main():
 
     # read local config file
-    f = open(os.path.dirname(os.path.realpath(__file__)) +
-             '\\config\\vinted_database_config.json')
+    try:
+        f = open(os.path.dirname(os.path.realpath(__file__)) +
+             '/config/vinted_database_config.json')
+        print("Read local config file")
+    except OSError as oe:
+        print(oe)
 
     # Reading from file
     config = json.loads(f.read())
 
-    # postgre engine instantiation
-    engine = get_database_engine(
-        config['pg_server_admin'],
-        config['pg_server_admin_password'],
-        config['pg_server_ip'],
-        "vintracker_database")
+    try:
+        # postgre engine instantiation
+        engine = get_database_engine(
+            config['pg_server_admin'],
+            config['pg_server_admin_password'],
+            config['pg_server_ip'],
+            "vintracker_database",
+            False)
+        print("Got DB Engine Object")
 
-    # # vintracker first time database setup
-    create_default_database(engine)
-    create_default_tables(engine)
-    create_default_users(
-        config['vintracker_admin'],
-        config['vintracker_admin_pw'],
-        config['vintracker_scraper'],
-        config['vintracker_scraper_pw'],
-        engine)
+        # # vintracker first time database setup
+        create_default_database(engine)
+        print("Created default DB")
+
+        create_default_tables(engine)
+        print("Created default DB Tables")
+
+        create_default_users(
+            config['vintracker_admin'],
+            config['vintracker_admin_pw'],
+            config['vintracker_scraper'],
+            config['vintracker_scraper_pw'],
+            engine,
+            False)
+        print("Created default DB Users")
+    except SQLAlchemyError as e:
+        print(type(e))
+
+    print("Finished DB Setup!")
 
 
 def debug_main():
 
     # # read local config file
     f = open(os.path.dirname(os.path.realpath(__file__)) +
-             '\\config\\vinted_database_config.json')
+             '/config/vinted_database_config.json')
 
     # # reading config from file
     config = json.loads(f.read())
-    
+
     # # create database engine
     engine = get_database_engine(
         config['pg_server_admin'],
@@ -688,7 +703,7 @@ def debug_main():
 
     connection = engine.connect()
 
-    # # user data to be scraped 
+    # # user data to be scraped
     user_ids = [52446954, 54756595, 44787336]
 
     vinted_data = vintrackerScraper.scrape_user(user_ids)
@@ -697,9 +712,8 @@ def debug_main():
     # for user in vinted_data['users']:
         # print( user  )
         # insert_user_data(user, connection)
-        # insert_user_data(user, connection)
 
-    
+
     # # insert every scraped users items to db
     # for user in vinted_data['users']:
     #     for item in user['items']:
@@ -719,20 +733,20 @@ def debug_main():
     # for user in vinted_data['users']:
     #     item_change = get_scraped_item_data_difference(user['items'], connection)
     #     db_item = get_item_data(item_change[0]["item_id"],connection)
-    
-    
-    # # get user change 
+
+
+    # # get user change
     user_change = dict()
     user_change = get_scraped_user_data_difference(vinted_data['users'], connection)
     db_item = get_user_data(user_change[0]["user_id"],connection)
 
     # print(json.dumps(user_change, indent=4, ensure_ascii=False))
 
-    # get user data 
+    # get user data
     # print(json.dumps(get_user_data(user_ids[0], connection), indent=4, ensure_ascii=False))
 
     connection.close()
     engine.dispose()
 
 
-debug_main()
+# main()
