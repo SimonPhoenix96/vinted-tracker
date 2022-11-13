@@ -1,26 +1,123 @@
-from flask import Flask
-from flask import Flask, flash, redirect, render_template, request, session, abort
+import json
+import vintrackerScraper
+import vintrackerDatabase
 import os
+import copy
 
-app = Flask(__name__)
 
-@app.route('/')
+def main():
+    
+    # # read local config file
+    f = open(os.path.dirname(os.path.realpath(__file__)) +
+             '/config/vinted_database_config.json')
 
-def home():
+    # # reading config from file
+    config = json.loads(f.read())
+    
+    # # create database engine
+    engine = vintrackerDatabase.get_database_engine(
+        config['pg_server_admin'],
+        config['pg_server_admin_password'],
+        config['pg_server_ip'],
+        "vintracker_database",
+        False)
 
-if not session.get('logged_in'):
-    return render_template('login.html')
-else:
-    return "Hello Boss!"
+    # # vintracker first time database setup
+    vintrackerDatabase.create_default_database(engine)
+    vintrackerDatabase.create_default_tables(engine)
+    vintrackerDatabase.create_default_users(
+        config['vintracker_admin'],
+        config['vintracker_admin_pw'],
+        config['vintracker_scraper'],
+        config['vintracker_scraper_pw'],
+        engine,
+        False)
 
-@app.route('/login', methods=['POST'])
-def do_admin_login():
-if request.form['password'] == 'password' and request.form['username'] == 'admin':
-    session['logged_in'] = True
-else:
-    flash('wrong password!')
-return home()
+    connection = engine.connect()
+    # print(config['user_ids'][0])
+    user_ids = [79562987] 
+    # 44205571,46942432,44918503,45161108,52931034,37142759,43942636,44332099]
+    vinted_data = vintrackerScraper.scrape_user(user_ids)
 
-if __name__ == "__main__":
-        app.secret_key = os.urandom(12)
-app.run(debug=True,host='0.0.0.0', port=5000)
+    vinted_data_copy = copy.deepcopy(vinted_data)
+
+    # # # get item and user change
+    item_changes = dict()
+    for user in vinted_data_copy['users']:
+        item_changes = vintrackerDatabase.get_scraped_item_data_difference(user['items'], connection)
+    
+    if item_changes is not None:
+        for item_change in item_changes: 
+            print("Inserting Changes!")
+            vintrackerDatabase.insert_item_change(item_change,connection)
+    else:
+        print("No Item Changes to add!")
+
+    # user_changes = dict()
+    # user_changes = vintrackerDatabase.get_scraped_user_data_difference(vinted_data['users'], connection)
+    
+    # if user_changes is not None:
+    #     for user_change in user_changes: 
+    #         print(user_change)
+    #         # vintrackerDatabase.insert_user_change(user_change,connection)
+    # else:
+    #     print("No User Changes to add!")
+
+
+
+    # # # insert users to db
+    for user in vinted_data['users']:
+        # print( user  )
+        vintrackerDatabase.insert_user_data(user, connection)
+
+    
+    # # insert every scraped users items to db
+    for user in vinted_data['users']:
+        for item in user['items']:
+            vintrackerDatabase.insert_item_data(item, connection)
+
+    # insert every scraped users item change to db
+    # for user in vinted_data['users']:
+    #     for item in user['items']:
+            # print(json.dumps(item, indent=4, default=str, ensure_ascii=False))
+            # vintrackerDatabase.get_scraped_item_data_difference(item, connection)
+
+    # # get all items that exist in scraped users
+    # for user in vinted_data['users']:
+    #     for item in user['items']:
+    #         item_data = vintrackerDatabase.get_item_data(item['item_id'], connection)
+    #         print(item_data)
+
+
+
+
+    connection.close()
+    engine.dispose()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+main()    
