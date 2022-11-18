@@ -634,7 +634,7 @@ def main():
     # read local config file
     try:
         f = open(os.path.dirname(os.path.realpath(__file__)) +
-             '/config/vinted_database_config.json')
+             '/Config/vinted_database_config.json')
         print("Read local config file")
     except OSError as oe:
         print(oe)
@@ -677,7 +677,7 @@ def debug_main():
 
     # # read local config file
     f = open(os.path.dirname(os.path.realpath(__file__)) +
-             '/config/vinted_database_config.json')
+             '/Config/vinted_database_config.json')
 
     # # reading config from file
     config = json.loads(f.read())
@@ -750,3 +750,5 @@ def debug_main():
 
 
 # main()
+if __name__ == '__main__':
+    app.start()

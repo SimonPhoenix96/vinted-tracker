@@ -175,3 +175,5 @@ def main():
         print(json.dumps(user, default=str, indent=4))
 
 # main()    
+if __name__ == '__main__':
+    app.start()

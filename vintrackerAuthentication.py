@@ -1,1 +1,3 @@
-https://www.jeffastor.com/blog/authenticating-users-in-fastapi-with-jwt-tokens
+https://www.jeffastor.
+if __name__ == '__main__':
+    app.start()

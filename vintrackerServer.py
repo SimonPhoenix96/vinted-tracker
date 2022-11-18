@@ -3,13 +3,14 @@ import vintrackerScraper
 import vintrackerDatabase
 import os
 import copy
+from datetime import timedelta
 
 
-def main():
+def vintrackerServer():
     
     # # read local config file
     f = open(os.path.dirname(os.path.realpath(__file__)) +
-             '/config/vinted_database_config.json')
+             '/Config/vinted_database_config.json')
 
     # # reading config from file
     config = json.loads(f.read())
@@ -97,27 +98,6 @@ def main():
 
 
 
+#docker-compose -f vinted-tracker/Docker/docker-compose.yml up -d --force-recreate &&  celery multi restart w1 -A vinted-tracker -l INFO
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-main()    
