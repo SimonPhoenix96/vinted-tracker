@@ -257,7 +257,7 @@ def insert_user_data(user_data, connection):
             insert_item_value_statements += ":" + item_attribute + ")"
         counter += 1
 
-    query = text('INSERT INTO user_data(' + insert_item_attribute_statements + ' VALUES(' +  insert_item_value_statements )
+    query = text('INSERT IGNORE INTO user_data(' + insert_item_attribute_statements + ' VALUES(' +  insert_item_value_statements )
     # print(query)
     # print(json.dumps(user_data, indent=4, sort_keys=False, default=str, ensure_ascii=False))
     # # query = text("""INSERT INTO user_data(initially_scraped,user_id,user_login,following_count,followers_count,total_items_count,avg_response_time,volunteer_moderator,closet_promoted_until,profile_url,is_online,has_promoted_closet,about,feedback_reputation,is_shadow_banned,negative_feedback_count,country_iso_code,city_id,city_name,country_title_local,country_title,is_hated) VALUES(:initially_scraped,:user_id,:user_login,:following_count,:followers_count,:total_items_count,:avg_response_time,:volunteer_moderator,:closet_promoted_until,:profile_url,:is_online,:has_promoted_closet,:about,:feedback_reputation,:is_shadow_banned,:negative_feedback_count,:country_iso_code,:city_id,:city_name,:country_title_local,:country_title,:is_hated)""")
@@ -328,7 +328,7 @@ def insert_item_change(item_data, connection):
             insert_item_value_statements += ":" + item_attribute + ")"
         counter += 1
 
-    query = text('INSERT INTO item_data_change(' + insert_item_attribute_statements + ' VALUES(' +  insert_item_value_statements )
+    query = text('INSERT IGNORE INTO item_data_change(' + insert_item_attribute_statements + ' VALUES(' +  insert_item_value_statements )
 
     try:
         print(query)
