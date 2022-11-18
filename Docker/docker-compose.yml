@@ -4,29 +4,32 @@ services:
     container_name: pg_container
     image: postgres
     restart: always
+    network_mode: "host"
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: 123qweasdyxc
       POSTGRES_DB: test_db
+    volumes:
+      - ./postgres_data:/var/lib/postgresql/data
     ports:
-      - 127.0.0.1:5432:5432
+      - :5432
 
   pgadmin:
     container_name: pgadmin4_container
     image: dpage/pgadmin4
     restart: always
+    network_mode: "host"
     environment:
       PGADMIN_DEFAULT_EMAIL: admin@admin.com
       PGADMIN_DEFAULT_PASSWORD: root
     ports:
-      - 127.0.0.1:5050:80
+      - :80
 
 
   rabbitmq:
     image: rabbitmq:3-management-alpine
     container_name: 'rabbitmq'
+    network_mode: "host"
     ports:
-        - 127.0.0.1:5672:5672
-        - 127.0.0.1:15672:15672
-networks:
-  default:
+        - :5672
+        - :15672

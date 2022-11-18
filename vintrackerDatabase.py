@@ -42,7 +42,7 @@ string_attributes = (
     )
 
 
-def get_database_engine(username, password, ip, database, debug):
+def get_database_engine(username, password, ip, database, loglevel):
 
     try:
         engine = create_engine(
@@ -54,7 +54,7 @@ def get_database_engine(username, password, ip, database, debug):
             ip +
             "/" +
             database,
-            echo=debug)
+            echo=loglevel)
         return engine
 
     except SQLAlchemyError as e:

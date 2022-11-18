@@ -5,6 +5,7 @@ import os
 import copy
 from datetime import timedelta
 
+from tasks import add
 
 def vintrackerServer():
     
@@ -40,7 +41,7 @@ def vintrackerServer():
     # 44205571,46942432,44918503,45161108,52931034,37142759,43942636,44332099]
     vinted_data = vintrackerScraper.scrape_user(user_ids)
 
-    vinted_data_copy = copy.deepcopy(vinted_data)
+    vinted_data_copy = copy.deepcopy(vinted_data) # TODO fix deepcopy not working pass by reference hard to do in python
 
     # # # get item and user change
     item_changes = dict()
@@ -90,6 +91,9 @@ def vintrackerServer():
     #         print(item_data)
 
 
+    ## from from vinted-tracker.tasks import add
+    # add.delay(2, 2)
+
 
 
     connection.close()
@@ -97,6 +101,7 @@ def vintrackerServer():
 
 
 
+vintrackerServer()
 
 #docker-compose -f vinted-tracker/Docker/docker-compose.yml up -d --force-recreate &&  celery multi restart w1 -A vinted-tracker -l INFO
 

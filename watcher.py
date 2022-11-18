@@ -1,4 +1,5 @@
-# docker-compose -f vinted-tracker/Docker/docker-compose.yml up -d --force-recreate &&  celery multi restart w1 -A vinted-tracker -l INFO
+# docker-compose -f vinted-tracker/Docker/docker-compose.yml up -d --no-recreate &&  celery multi restart w1 -A vinted-tracker.watcher -l INFO
+
 from celery import Celery
 
 app = Celery('vinted-tracker',

@@ -1,4 +1,4 @@
-from .celery import app
+from watcher import app
 
 
 @app.task
@@ -14,3 +14,4 @@ def mul(x, y):
 @app.task
 def xsum(numbers):
     return sum(numbers)
+
