@@ -1,1 +1,0 @@
-https://www.jeffastor.com/blog/authenticating-users-in-fastapi-with-jwt-tokens
