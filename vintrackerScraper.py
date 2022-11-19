@@ -40,7 +40,7 @@ def scrape_user(user_ids):
         url = f'https://www.vinted.de/api/v2/users/{USER_ID}/items?page=1&per_page=200000'
         # print('ID=' + str(USER_ID))
         
-        req = s.get("https://www.vinted.de/member/79562987-charliekitter")
+        req = s.get("https://www.vinted.de/member/120325629-ktykkltjryyt")
         
         # print(req.text.find("csrf-token"))
         csrfToken = req.text.split('<meta name="csrf-token" content="')[1].split('"')[0]
