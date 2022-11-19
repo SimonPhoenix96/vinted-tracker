@@ -61,7 +61,6 @@ def get_database_engine(username, password, ip, database, loglevel):
         error = str(e.__dict__['orig'])
         print(error)
 
-
 def create_default_database(engine):
 
     try:
@@ -70,7 +69,6 @@ def create_default_database(engine):
     except SQLAlchemyError as e:
         error = str(e.__dict__['orig'])
         print(error)
-
 
 def create_default_tables(engine):
 
@@ -196,8 +194,6 @@ def create_default_tables(engine):
     except SQLAlchemyError as e:
         error = str(e.__dict__['orig'])
         print(error)
-
-
 # TODO finish setting user permissions: vintracker_admin, vintracker_scraper which should be able to query, update, insert scraped data to database
 def create_default_users(
         vintracker_admin,
@@ -228,8 +224,6 @@ def create_default_users(
         error = str(e.__dict__['orig'])
         if debug:
             print(error)
-
-
 # TODO: insert_user_data insert only necessary changed values, make dynamic query
 def insert_user_data(user_data, connection):
     # need to save copy for later re adding to user_data
@@ -257,7 +251,7 @@ def insert_user_data(user_data, connection):
             insert_item_value_statements += ":" + item_attribute + ")"
         counter += 1
 
-    query = text('INSERT IGNORE INTO user_data(' + insert_item_attribute_statements + ' VALUES(' +  insert_item_value_statements )
+    query = text('INSERT INTO user_data(' + insert_item_attribute_statements + ' VALUES(' +  insert_item_value_statements  + 'ON CONFLICT (item_id) DO NOTHING')
     # print(query)
     # print(json.dumps(user_data, indent=4, sort_keys=False, default=str, ensure_ascii=False))
     # # query = text("""INSERT INTO user_data(initially_scraped,user_id,user_login,following_count,followers_count,total_items_count,avg_response_time,volunteer_moderator,closet_promoted_until,profile_url,is_online,has_promoted_closet,about,feedback_reputation,is_shadow_banned,negative_feedback_count,country_iso_code,city_id,city_name,country_title_local,country_title,is_hated) VALUES(:initially_scraped,:user_id,:user_login,:following_count,:followers_count,:total_items_count,:avg_response_time,:volunteer_moderator,:closet_promoted_until,:profile_url,:is_online,:has_promoted_closet,:about,:feedback_reputation,:is_shadow_banned,:negative_feedback_count,:country_iso_code,:city_id,:city_name,:country_title_local,:country_title,:is_hated)""")
@@ -270,7 +264,6 @@ def insert_user_data(user_data, connection):
         print(error)
 
     user_data.update(({"items": item_data}))
-
 # passing item dict so use .keys() 13.03
 def insert_item_data(item_data, connection):
 
@@ -297,7 +290,44 @@ def insert_item_data(item_data, connection):
         counter += 1
 
 
-    query = text('INSERT INTO item_data(' + insert_item_attribute_statements + ' VALUES(' +  insert_item_value_statements )
+    query = text('INSERT INTO item_data(' + insert_item_attribute_statements + ' VALUES(' +  insert_item_value_statements + 'ON CONFLICT (item_id) DO NOTHING')
+    print(query)
+
+    try:
+
+        id = connection.execute(query, item_data)
+        print("Rows Added from " + str(item_data['user_id']) + " = ", id.rowcount)
+
+    except SQLAlchemyError as e:
+        error = str(e.__dict__['orig'])
+        print(error)
+# TODO fidn out how to update whole row on conflict postgresql or else wont have latest item state in DB, maybe can hash scraped_vinted_data to detect change insrtead of checking each row itself
+def update_item_data(item_data, connection):
+
+    # set timestamp
+    # item.update([("initially_scraped", datetime.now())])
+
+    # print(type(item_data))
+    # print(json.dumps(item_data, indent=4, sort_keys=False, default=str, ensure_ascii=False))
+    # print(item_data.keys())
+
+    insert_item_attribute_statements = str()
+    insert_item_value_statements = str()
+    counter = 0
+    attribute_count = len(item_data.keys())
+    item_attributes = item_data.keys()
+
+    for item_attribute in item_attributes:
+        if counter < (attribute_count - 1):
+            insert_item_attribute_statements += item_attribute + ","
+            insert_item_value_statements += ":" + item_attribute + ","
+        else:
+            insert_item_attribute_statements += item_attribute + ")"
+            insert_item_value_statements += ":" + item_attribute + ")"
+        counter += 1
+
+
+    query = text('UPDATE item_data(' + insert_item_attribute_statements + ' VALUES(' +  insert_item_value_statements + 'ON CONFLICT (item_id) DO NOTHING')
     print(query)
 
     try:
@@ -328,7 +358,7 @@ def insert_item_change(item_data, connection):
             insert_item_value_statements += ":" + item_attribute + ")"
         counter += 1
 
-    query = text('INSERT IGNORE INTO item_data_change(' + insert_item_attribute_statements + ' VALUES(' +  insert_item_value_statements )
+    query = text('INSERT INTO item_data_change(' + insert_item_attribute_statements + ' VALUES(' +  insert_item_value_statements + 'ON CONFLICT (item_id) DO NOTHING' )
 
     try:
         print(query)
@@ -342,10 +372,8 @@ def insert_item_change(item_data, connection):
 def insert_user_change(user_change, connection):
     print(user_change)
 
-
 def get_change_user_data(start, end, user_id):
     return True
-
 
 def get_change_item_data(start, end, item_id):
     return True
@@ -379,7 +407,6 @@ def get_user_data(user_id, connection):
 
     return True
 
-
 def get_item_data(item_id, connection):
 
     query = text(
@@ -405,7 +432,6 @@ def get_item_data(item_id, connection):
         return "Error: Item not found!"
     else:
         return row_as_dict
-
 
 def get_scraped_user_data_difference(scraped_users, connection):
 
@@ -490,9 +516,7 @@ def get_scraped_user_data_difference(scraped_users, connection):
         # print(type(user))
     # print(len(scraped_users))
     return scraped_users
-
-# returns items and its values that need to be updated/inserted into the
-# database
+# returns items and its values that need to be updated/inserted into the database
 def get_scraped_item_data_difference(scraped_items, connection):
 
     # add unchanged or new items here
@@ -611,10 +635,8 @@ def update_item_data(item, connection):
     #     print(error)
     # return True
 
-
 def delete_user_data(data):
     return True
-
 
 def delete_item_data(data):
     return True
@@ -671,7 +693,6 @@ def main():
         print(type(e))
 
     print("Finished DB Setup!")
-
 
 def debug_main():
 

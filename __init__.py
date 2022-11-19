@@ -1,0 +1,1 @@
+#https://github.com/jazzband/prettytable/blob/20de99e3265edb99dac3997571e920efeb330c23/src/prettytable/__init__.py#L16

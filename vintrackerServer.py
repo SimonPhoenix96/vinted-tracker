@@ -1,3 +1,5 @@
+# python3 vinted-tracker/vintrackerServer.py > vinted-tracker/Logs/vintrackerServer.py
+# https://twitter.com/danielepolencic/status/1376485484319272966
 import json
 import vintrackerScraper
 import vintrackerDatabase
@@ -48,6 +50,10 @@ def vintrackerServer():
     for user in vinted_data_copy['users']:
         item_changes = vintrackerDatabase.get_scraped_item_data_difference(user['items'], connection)
     
+
+    print(json.dumps(vinted_data_copy, indent=4, default=str, ensure_ascii=False))
+    print(json.dumps(vinted_data, indent=4, default=str, ensure_ascii=False))
+    
     if item_changes is not None:
         for item_change in item_changes: 
             print("Inserting Changes!")
@@ -76,7 +82,7 @@ def vintrackerServer():
     # # insert every scraped users items to db
     for user in vinted_data['users']:
         for item in user['items']:
-            vintrackerDatabase.insert_item_data(item, connection)
+            vintrackerDatabase.update"_item_data(item, connection)
 
     # insert every scraped users item change to db
     # for user in vinted_data['users']:
