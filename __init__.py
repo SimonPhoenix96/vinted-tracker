@@ -1,1 +1,11 @@
-#https://github.com/jazzband/prettytable/blob/20de99e3265edb99dac3997571e920efeb330c23/src/prettytable/__init__.py#L16
+import os
+
+# celery config is in a non-standard location & can be updated dynamically now
+os.environ['CELERY_CONFIG_MODULE'] = 'vinted-tracker.config.celeryconfig'
+
+# try:
+    # Python 3.8+
+    # import importlib.metadata as importlib_metadata
+# except ImportError:
+    # <Python 3.7 and lower
+    # import importlib_metadata

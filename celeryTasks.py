@@ -1,4 +1,4 @@
-from watcher import app
+from celeryInstance import app
 
 
 @app.task

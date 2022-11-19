@@ -297,11 +297,11 @@ def insert_item_data(item_data, connection):
 
         id = connection.execute(query, item_data)
         print("Rows Added from " + str(item_data['user_id']) + " = ", id.rowcount)
-
     except SQLAlchemyError as e:
         error = str(e.__dict__['orig'])
         print(error)
-# TODO fidn out how to update whole row on conflict postgresql or else wont have latest item state in DB, maybe can hash scraped_vinted_data to detect change insrtead of checking each row itself
+
+# TODO find out how to update whole row on conflict postgresql or else wont have latest item state in DB, maybe can hash scraped_vinted_data to detect change insrtead of checking each row itself
 def update_item_data(item_data, connection):
 
     # set timestamp
@@ -770,6 +770,3 @@ def debug_main():
     engine.dispose()
 
 
-# main()
-if __name__ == '__main__':
-    app.start()

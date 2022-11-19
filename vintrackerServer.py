@@ -1,4 +1,4 @@
-# python3 vinted-tracker/vintrackerServer.py > vinted-tracker/Logs/vintrackerServer.py
+# python3 vinted-tracker/vintrackerServer.py > vinted-tracker/logs/vintrackerServer.py
 # https://twitter.com/danielepolencic/status/1376485484319272966
 import json
 import vintrackerScraper
@@ -82,7 +82,7 @@ def vintrackerServer():
     # # insert every scraped users items to db
     for user in vinted_data['users']:
         for item in user['items']:
-            vintrackerDatabase.update"_item_data(item, connection)
+            vintrackerDatabase.insert_item_data(item, connection)
 
     # insert every scraped users item change to db
     # for user in vinted_data['users']:
@@ -109,6 +109,6 @@ def vintrackerServer():
 
 vintrackerServer()
 
-#docker-compose -f vinted-tracker/Docker/docker-compose.yml up -d --force-recreate &&  celery multi restart w1 -A vinted-tracker -l INFO
+#docker-compose -f vinted-tracker/docker/docker-compose.yml up -d --force-recreate &&  celery multi restart w1 -A vinted-tracker -l INFO
 
 

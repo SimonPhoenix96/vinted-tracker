@@ -10,7 +10,7 @@ services:
       POSTGRES_PASSWORD: 123qweasdyxc
       POSTGRES_DB: test_db
     volumes:
-      - ./postgres_data:/var/lib/postgresql/data
+      - ./volumes/postgres_data:/var/lib/postgresql/data
     ports:
       - :5432
 
